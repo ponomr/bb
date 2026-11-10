@@ -125,6 +125,45 @@ describe("a configured entry that replaces a shipped agent", () => {
     });
   }
 
+  it("inherits the shipped agent's icon and tint unless it sets its own icon", () => {
+    const opencode = shipped("acp-opencode");
+    const inherited = onlyAgent(
+      replacing({ id: "opencode", displayName: "opencode", command: "oc" }),
+    );
+    expect(inherited.icon).toBe(opencode.icon);
+    expect(inherited.iconTint).toEqual(opencode.iconTint);
+
+    const ownGlyph = onlyAgent(
+      replacing({
+        id: "opencode",
+        displayName: "opencode",
+        command: "oc",
+        icon: "Calendar",
+      }),
+    );
+    expect(ownGlyph.icon).toBe("Calendar");
+    expect(ownGlyph.iconTint).toBeUndefined();
+
+    const ownTint = { light: "#111111", dark: "#EEEEEE" };
+    const tinted = onlyAgent(
+      replacing({
+        id: "opencode",
+        displayName: "opencode",
+        command: "oc",
+        iconTint: ownTint,
+      }),
+    );
+    expect(tinted.icon).toBe(opencode.icon);
+    expect(tinted.iconTint).toEqual(ownTint);
+  });
+
+  it("gives a replaced shipped agent without a registry icon its shipped icon", () => {
+    const agent = onlyAgent(
+      replacing({ id: "hermes-agent", displayName: "Hera", command: "hermes" }),
+    );
+    expect(agent.icon).toBe(shipped("acp-hermes-agent").icon);
+  });
+
   it("inherits the shipped agent's roots, with their options, and its resolver", async () => {
     const resolved = replacing({
       id: "grok",

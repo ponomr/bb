@@ -697,8 +697,15 @@ selection), `reasoningCli` (launch-time reasoning flags), `nativeReasoning`
 (`{"user": [...], "project": [...]}` relative paths; an entry is a path or
 `{"path": ..., "recursive": true, "ancestors": true}`), `permissionCli`
 (permission-mode launch flags), `supportsManualCompaction` (bb hides
-`/compact` otherwise), `providerUsage`, and `dialect` (`cursor`, `opencode`,
-`omp`, or `grok`).
+`/compact` otherwise), `providerUsage`, `dialect` (`cursor`, `opencode`,
+`omp`, or `grok`), `icon`, and `iconTint`.
+
+`icon` is a host glyph name such as `"Calendar"` or an icon the plugin
+declares, such as `"provider-acp/cursor"`; any other value rejects that entry
+with a warning. `iconTint` is `{"light": ..., "dark": ...}` CSS colours. An
+entry without `icon` keeps its default: the replaced shipped agent's icon, its
+ACP registry icon, or `Toolbox`. It keeps the shipped tint only while it keeps
+the shipped icon.
 
 Changes apply immediately, with no restart. A custom agent's command is local
 code execution and only works with a co-located daemon. The `customAcpAgents`

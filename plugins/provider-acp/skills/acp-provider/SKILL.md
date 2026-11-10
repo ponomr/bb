@@ -163,3 +163,7 @@ restart is needed.
   workspace, each a relative path without dot segments.
 - `supportsManualCompaction` (default `false`) shows `/compact` only for agents
   that accept an explicit compaction request.
+- `icon` is a host glyph name (`"Calendar"`) or a declared icon
+  (`"provider-acp/cursor"`); `iconTint` is `{"light": ..., "dark": ...}`.
+  Without `icon` an entry keeps the replaced shipped agent's icon and tint,
+  its ACP registry icon, or `Toolbox`.

@@ -3,7 +3,7 @@ import type { PluginProviderReasoningLevel } from "@get-bb/plugin-sdk";
 import { experimental_acpLaunchSpecSchema } from "@get-bb/plugin-sdk/provider-bridge/acp";
 import type { AcpLaunchSpec } from "@get-bb/plugin-sdk/provider-bridge/acp";
 import type { AcpNativeRootsResolver } from "./native-roots/resolver.js";
-import { registryAgentIcon } from "./registry-icons.js";
+import { isCustomAgentIcon, registryAgentIcon } from "./registry-icons.js";
 
 export const ACP_FAMILY = "acp";
 
@@ -57,6 +57,17 @@ export const customAcpAgentSchema = z
     permissionCli: launchSpecFields.permissionCli,
     supportsManualCompaction: z.boolean().default(false),
     providerUsage: z.boolean().optional(),
+    icon: z
+      .string()
+      .refine(isCustomAgentIcon, {
+        message:
+          'icon must be a host glyph name such as "Calendar" or an icon this plugin declares, such as "provider-acp/cursor"',
+      })
+      .optional(),
+    iconTint: z
+      .object({ light: z.string().min(1), dark: z.string().min(1) })
+      .strict()
+      .optional(),
   })
   .strict();
 export type CustomAcpAgent = z.infer<typeof customAcpAgentSchema>;
@@ -69,10 +80,21 @@ export function customAcpAgentDefinition(
 ): AcpAgentDefinition {
   const nativeSkillRoots =
     agent.nativeSkillRoots ?? shipped?.launch.nativeSkillRoots;
+  const icon =
+    agent.icon ??
+    shipped?.icon ??
+    registryAgentIcon(agent.id) ??
+    CUSTOM_AGENT_GLYPH;
+  const iconTint =
+    agent.iconTint ??
+    (shipped !== undefined && icon === shipped.icon
+      ? shipped.iconTint
+      : undefined);
   return {
     id: formatCustomAcpProviderId(agent.id),
     displayName: agent.displayName,
-    icon: registryAgentIcon(agent.id) ?? CUSTOM_AGENT_GLYPH,
+    icon,
+    ...(iconTint === undefined ? {} : { iconTint }),
     launch: {
       displayName: agent.displayName,
       command: agent.command,

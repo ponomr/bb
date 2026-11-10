@@ -10,7 +10,10 @@ import {
 } from "./agents.js";
 import { acpProviderDeclaration } from "./declaration.js";
 import { KNOWN_ACP_AGENTS, RESERVED_ACP_PROVIDER_IDS } from "./known-agents.js";
-import { REGISTRY_ICON_AGENT_IDS } from "./registry-icons.js";
+import {
+  REGISTRY_ICON_AGENT_IDS,
+  declaredAcpIconNames,
+} from "./registry-icons.js";
 import { experimental_acpLaunchSpecSchema } from "@get-bb/plugin-sdk/provider-bridge/acp";
 
 const reserved = RESERVED_ACP_PROVIDER_IDS;
@@ -182,6 +185,74 @@ describe("custom agent icons", () => {
     expect(
       Object.keys(declared).filter((name) => name.startsWith("registry-")),
     ).toHaveLength(REGISTRY_ICON_AGENT_IDS.length);
+  });
+
+  it("accepts exactly the icons the manifest declares", () => {
+    const manifest = z
+      .object({
+        bb: z.object({
+          branding: z.object({
+            experimental_icons: z.record(z.string(), z.string()),
+          }),
+        }),
+      })
+      .parse(
+        JSON.parse(
+          readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+        ),
+      );
+    expect([...declaredAcpIconNames()].sort()).toEqual(
+      Object.keys(manifest.bb.branding.experimental_icons).sort(),
+    );
+  });
+
+  const parseOne = (entry: Record<string, unknown>) =>
+    parseCustomAcpAgents({
+      entries: [
+        { id: "hera", displayName: "Hera", command: "hermes", ...entry },
+      ],
+      reservedProviderIds: reserved,
+    });
+
+  it("uses the icon and tint an entry sets", () => {
+    const tint = { light: "#7C3AED", dark: "#A78BFA" };
+    for (const icon of ["Calendar", "provider-acp/hermes-agent"]) {
+      const [agent] = parseOne({ icon, iconTint: tint }).agents;
+      if (agent === undefined) throw new Error(`${icon} did not parse`);
+      const definition = customAcpAgentDefinition(agent);
+      expect(definition.icon).toBe(icon);
+      expect(definition.iconTint).toEqual(tint);
+      expect(acpProviderDeclaration(definition).icon).toBe(icon);
+      expect(acpProviderDeclaration(definition).strings?.iconTint).toEqual(
+        tint,
+      );
+    }
+  });
+
+  it("rejects an icon the host could not draw, only for that entry", () => {
+    for (const icon of [
+      "calendar",
+      "provider-acp/not-declared",
+      "other-plugin/cursor",
+      "./icons/cursor.svg",
+      "~/icons/hera.svg",
+      "data:image/svg+xml;base64,PHN2Zy8+",
+      "",
+    ]) {
+      const parsed = parseCustomAcpAgents({
+        entries: [
+          { id: "hera", displayName: "Hera", command: "hermes", icon },
+          { id: "iris", displayName: "Iris", command: "hermes" },
+        ],
+        reservedProviderIds: reserved,
+      });
+      expect(parsed.problems, icon).toHaveLength(1);
+      expect(parsed.agents.map((agent) => agent.id)).toEqual(["iris"]);
+    }
+  });
+
+  it("rejects a tint without both themes", () => {
+    expect(parseOne({ iconTint: { light: "#000" } }).problems).toHaveLength(1);
   });
 });
 
